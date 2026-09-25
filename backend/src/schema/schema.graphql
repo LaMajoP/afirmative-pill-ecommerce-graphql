@@ -1,0 +1,165 @@
+"""
+AFIRMATIVE PILL — Schema GraphQL
+Arquitectura CQRS: las Queries leen de modelos de proyección (read model),
+las Mutations son comandos de dominio que validan invariantes de negocio
+(write model). Zero-REST: este es el único contrato de comunicación
+cliente-servidor.
+"""
+
+scalar DateTime
+
+# -----------------------------------------------------------------
+# TIPOS DE DOMINIO (Read Model)
+# -----------------------------------------------------------------
+
+type Category {
+  id: ID!
+  name: String!
+}
+
+"""Ficha condensada — usada en listados de catálogo (evita over-fetching)."""
+type Medication {
+  id: ID!
+  commercialName: String!
+  activeIngredient: String!
+  category: Category!
+  laboratory: String!
+  presentation: String!
+  price: Float!
+  stock: Int!
+  requiresPrescription: Boolean!
+  indications: String
+  contraindications: String
+  inStock: Boolean!
+}
+
+type MedicationConnection {
+  items: [Medication!]!
+  totalCount: Int!
+}
+
+enum OrderStatus {
+  PENDING_APPROVAL
+  APPROVED
+  DISPATCHED
+  CANCELLED
+}
+
+type OrderItem {
+  id: ID!
+  medication: Medication!
+  quantity: Int!
+  unitPrice: Float!
+  subtotal: Float!
+}
+
+type Prescription {
+  id: ID!
+  documentUrl: String!
+  verified: Boolean!
+}
+
+"""Proyección de lectura del pedido (Read Model del agregado Order)."""
+type Order {
+  id: ID!
+  patientId: ID!
+  status: OrderStatus!
+  items: [OrderItem!]!
+  total: Float!
+  prescription: Prescription
+  createdAt: DateTime!
+  updatedAt: DateTime!
+}
+
+# -----------------------------------------------------------------
+# INPUTS (Comandos)
+# -----------------------------------------------------------------
+
+input OrderItemInput {
+  medicationId: ID!
+  quantity: Int!
+}
+
+input PrescriptionInput {
+  documentUrl: String!
+}
+
+"""Comando: CreateOrder — expresa la intención de negocio del paciente."""
+input CreateOrderInput {
+  patientId: ID!
+  items: [OrderItemInput!]!
+  prescription: PrescriptionInput
+}
+
+input MedicationFilterInput {
+  search: String
+  categoryId: ID
+  requiresPrescription: Boolean
+}
+
+# -----------------------------------------------------------------
+# PAYLOADS (respuestas ricas en errores de validación — no excepciones crudas)
+# -----------------------------------------------------------------
+
+type ValidationError {
+  field: String!
+  message: String!
+}
+
+type CreateOrderPayload {
+  success: Boolean!
+  order: Order
+  errors: [ValidationError!]!
+}
+
+type UpdateOrderStatusPayload {
+  success: Boolean!
+  order: Order
+  errors: [ValidationError!]!
+}
+
+# -----------------------------------------------------------------
+# QUERIES — Read Model (proyecciones optimizadas para lectura)
+# -----------------------------------------------------------------
+
+type Query {
+  """Catálogo con búsqueda facetada. Vista condensada anti over-fetching."""
+  medications(filter: MedicationFilterInput, limit: Int = 20, offset: Int = 0): MedicationConnection!
+
+  """Ficha técnica detallada de un medicamento."""
+  medication(id: ID!): Medication
+
+  categories: [Category!]!
+
+  """Proyección del pedido con estado operacional en tiempo real."""
+  order(id: ID!): Order
+
+  """Historial de pedidos de un paciente."""
+  ordersByPatient(patientId: ID!): [Order!]!
+}
+
+# -----------------------------------------------------------------
+# MUTATIONS — Write Model (comandos de dominio con efectos secundarios)
+# -----------------------------------------------------------------
+
+type Mutation {
+  """
+  Comando de dominio. Valida: (1) stock disponible por ítem,
+  (2) si algún ítem requires_prescription=true, exige soporte de fórmula
+  médica. Decrementa inventario de forma atómica y transiciona la orden
+  a PENDING_APPROVAL.
+  """
+  createOrder(input: CreateOrderInput!): CreateOrderPayload!
+
+  """Comando administrativo: transición de estado operacional del pedido."""
+  updateOrderStatus(orderId: ID!, status: OrderStatus!): UpdateOrderStatusPayload!
+}
+
+# -----------------------------------------------------------------
+# SUBSCRIPTIONS — Canal reactivo (consistencia eventual visible al cliente)
+# -----------------------------------------------------------------
+
+type Subscription {
+  """Emite cada vez que cambia el estado operacional de un pedido."""
+  orderStatusChanged(orderId: ID!): Order!
+}
