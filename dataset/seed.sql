@@ -146,3 +146,26 @@ begin
   ('Redoxon', 'Vitamina D3 2000UI + Calcio', cat_vit, 'Bayer', 'Caja x 30 tabletas', 15300, 320, false, 'Suplemento óseo');
 
 end $$;
+
+-- ---------------------------------------------------------
+-- 5. ROW LEVEL SECURITY (RLS)
+-- ---------------------------------------------------------
+-- El backend (Apollo Server) se conecta a Supabase con la connection string
+-- directa (rol `postgres`), que SIEMPRE puede leer/escribir sin importar RLS
+-- (tiene el atributo BYPASSRLS). Por eso NO se necesitan políticas "ALLOW"
+-- explícitas para que la API GraphQL funcione.
+--
+-- Activamos RLS de todas formas, sin políticas para anon/authenticated,
+-- para bloquear la API pública automática de Supabase (PostgREST + anon key).
+-- Así, aunque alguien obtenga la anon key del proyecto, NO podrá leer ni
+-- escribir estas tablas por fuera de tu API GraphQL. Es defensa en profundidad,
+-- coherente con el mandato Zero-REST: el único canal válido es /graphql.
+
+alter table categories    enable row level security;
+alter table medications   enable row level security;
+alter table orders        enable row level security;
+alter table order_items   enable row level security;
+alter table prescriptions enable row level security;
+
+-- No se crean políticas para 'anon' ni 'authenticated': al no existir ninguna
+-- política, esos roles quedan sin ningún acceso (ni lectura ni escritura).
