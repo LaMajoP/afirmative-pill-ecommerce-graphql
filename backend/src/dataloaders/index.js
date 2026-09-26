@@ -29,7 +29,7 @@ function mapRow(row) {
 
 //Batch function: recibe N ids, hace 1 sola consulta, devuelve en el MISMO orden. */
 async function batchMedicationsByIds(ids) {
-  console.log(`[DataLoader] Batch de ${ids.length} medicamento(s) en 1 sola consulta SQL:`, ids);
+  console.log(`[DataLoader] Batch de ${ids.length} medicamento(s) en 1 sola consulta SQL:`, ids); //log de debug
   const { rows } = await pool.query(
     'SELECT * FROM medications WHERE id = ANY($1::uuid[])', //resolver las relaciones anidadas
     [ids]
