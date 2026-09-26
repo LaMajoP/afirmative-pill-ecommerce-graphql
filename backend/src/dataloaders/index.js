@@ -31,7 +31,7 @@ function mapRow(row) {
 async function batchMedicationsByIds(ids) {
   console.log(`[DataLoader] Batch de ${ids.length} medicamento(s) en 1 sola consulta SQL:`, ids);
   const { rows } = await pool.query(
-    'SELECT * FROM medications WHERE id = ANY($1::uuid[])',
+    'SELECT * FROM medications WHERE id = ANY($1::uuid[])', //resolver las relaciones anidadas
     [ids]
   );
   const byId = new Map(rows.map((r) => [r.id, mapRow(r)]));

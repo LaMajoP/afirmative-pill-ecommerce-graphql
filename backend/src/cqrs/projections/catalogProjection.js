@@ -1,9 +1,8 @@
-/**
- * CatalogProjection — lado READ del CQRS.
- * Consulta optimizada para el escenario de alta lectura del catálogo
- * (búsqueda facetada por nombre, principio activo o categoría) sin pasar
- * por la capa de comandos ni bloquear filas.
- */
+ //CatalogProjection — lado READ del CQRS.
+ // Consulta optimizada para el escenario de alta lectura del catálogo
+ // (búsqueda facetada por nombre, principio activo o categoría) sin pasar
+ // por la capa de comandos ni bloquear filas.
+ 
 const { pool } = require('../../db/pool');
 const { mapRow } = require('../../dataloaders');
 

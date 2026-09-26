@@ -1,11 +1,11 @@
-/**
- * COMANDOS DE DOMINIO (Write Model)
- * Un comando NO es un simple DTO: encapsula la intención de negocio y,
- * antes de ejecutarse, se valida a sí mismo contra las invariantes.
- * Los resolvers de Mutation nunca tocan la base de datos directamente:
- * siempre delegan en un Command -> Handler.
- */
+ // COMANDOS DE DOMINIO (Write Model)
+ // Un comando NO es un simple DTO: encapsula la intención de negocio y,
+ // antes de ejecutarse, se valida a sí mismo contra las invariantes.
+ // Los resolvers de Mutation nunca tocan la base de datos directamente:
+ // siempre delegan en un Command -> Handler.
 
+
+// Write Mode
 class CreateOrderCommand {
   constructor({ patientId, items, prescription }) {
     this.patientId = patientId;

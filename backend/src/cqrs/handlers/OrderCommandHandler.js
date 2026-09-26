@@ -1,16 +1,14 @@
-/**
- * OrderCommandHandler — lado WRITE del CQRS.
- *
- * Reglas de negocio farmacéuticas protegidas aquí (no en el frontend,
- * no en el resolver): son invariantes del dominio.
- *  1. No se puede comprar un ítem sin stock suficiente.
- *  2. Si algún medicamento requiere fórmula médica, el comando debe traer
- *     evidencia de prescripción (documentUrl) o se rechaza ANTES de tocar
- *     el inventario.
- *  3. El decremento de stock y la creación del pedido ocurren en una
- *     transacción SQL para garantizar consistencia atómica bajo concurrencia
- *     (ej. dos pacientes comprando el último frasco disponible).
- */
+ //OrderCommandHandler — lado WRITE del CQRS.
+ //Reglas de negocio farmacéuticas protegidas aquí
+ // son invariantes del dominio.
+ // 1. No se puede comprar un ítem sin stock suficiente.
+ // 2. Si algún medicamento requiere fórmula médica, el comando debe traer
+ //     evidencia de prescripción (documentUrl) o se rechaza ANTES de tocar
+ //     el inventario.
+ // 3. El decremento de stock y la creación del pedido ocurren en una
+ //     transacción SQL para garantizar consistencia atómica bajo concurrencia
+ //    (ej. dos pacientes comprando el último frasco disponible).
+
 const { pool } = require('../../db/pool');
 const { CreateOrderCommand, UpdateOrderStatusCommand } = require('../commands/commands');
 const { publishOrderStatusChanged } = require('../eventBus');
@@ -28,7 +26,7 @@ async function handleCreateOrder(rawInput) {
 
     const ids = command.items.map((i) => i.medicationId);
     const { rows: meds } = await client.query(
-      'SELECT * FROM medications WHERE id = ANY($1::uuid[]) FOR UPDATE',
+      'SELECT * FROM medications WHERE id = ANY($1::uuid[]) FOR UPDATE', //bloquear las filas durante la transacción
       [ids]
     );
     const medById = new Map(meds.map((m) => [m.id, m]));
@@ -54,7 +52,7 @@ async function handleCreateOrder(rawInput) {
     }
 
     // Invariante de negocio: fórmula médica obligatoria
-    if (requiresPrescription && !command.prescription?.documentUrl) {
+    if (requiresPrescription && !command.prescription?.documentUrl) { //valida la regla farmacéutica
       errors.push({
         field: 'prescription',
         message: 'Uno o más medicamentos requieren fórmula médica verificada antes de continuar',

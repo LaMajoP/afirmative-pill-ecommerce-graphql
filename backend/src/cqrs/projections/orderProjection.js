@@ -1,9 +1,8 @@
-/**
- * OrderProjection — lado READ del agregado Order.
- * El cliente consulta esta proyección para ver costo total, ítems y
- * estado operacional mientras el comando de compra se procesa
- * (consistencia eventual: el estado puede ir cambiando entre requests).
- */
+ // OrderProjection — lado READ del agregado Order.
+ // El cliente consulta esta proyección para ver costo total, ítems y
+ // estado operacional mientras el comando de compra se procesa
+ // (consistencia eventual: el estado puede ir cambiando entre requests).
+
 const { pool } = require('../../db/pool');
 
 function mapOrderRow(row) {
