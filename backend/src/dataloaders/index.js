@@ -1,13 +1,12 @@
-/**
- * DataLoader Pattern — mitigación del problema N+1.
- *
- * Cada resolver anidado (ej. OrderItem.medication) pide UNA entidad a la vez,
- * pero DataLoader espera un tick del event loop, junta todas las claves
- * solicitadas en ese ciclo y dispara UNA sola consulta en lote:
- *   SELECT * FROM medications WHERE id IN ($1, $2, ..., $n)
- * y memoriza los resultados durante el ciclo de vida de la petición
- * (caché por request — se crea un loader nuevo en cada `context()`).
- */
+// DataLoader Pattern — mitigación del problema N+1.
+//
+// Cada resolver anidado (ej. OrderItem.medication) pide UNA entidad a la vez,
+// pero DataLoader espera un tick del event loop, junta todas las claves
+// solicitadas en ese ciclo y dispara UNA sola consulta en lote:
+//   SELECT * FROM medications WHERE id IN ($1, $2, ..., $n)
+// y memoriza los resultados durante el ciclo de vida de la petición
+// (caché por request — se crea un loader nuevo en cada `context()`).
+
 const DataLoader = require('dataloader');
 const { pool } = require('../db/pool');
 
@@ -28,8 +27,9 @@ function mapRow(row) {
   };
 }
 
-/** Batch function: recibe N ids, hace 1 sola consulta, devuelve en el MISMO orden. */
+//Batch function: recibe N ids, hace 1 sola consulta, devuelve en el MISMO orden. */
 async function batchMedicationsByIds(ids) {
+  console.log(`[DataLoader] Batch de ${ids.length} medicamento(s) en 1 sola consulta SQL:`, ids);
   const { rows } = await pool.query(
     'SELECT * FROM medications WHERE id = ANY($1::uuid[])',
     [ids]
@@ -68,10 +68,8 @@ async function batchOrderItemsByOrderIds(orderIds) {
   return orderIds.map((id) => grouped.get(id));
 }
 
-/**
- * Crea un set de loaders NUEVO por cada request (ver context.js).
- * Esto evita fugas de caché entre distintos usuarios/peticiones.
- */
+ //Crea un set de loaders NUEVO por cada request (ver context.js).
+ //Esto evita fugas de caché entre distintos usuarios/peticiones.
 function createLoaders() {
   return {
     medicationById: new DataLoader(batchMedicationsByIds),

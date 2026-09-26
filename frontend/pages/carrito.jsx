@@ -12,8 +12,28 @@ export default function Carrito() {
   const router = useRouter();
   const { items, removeItem, needsPrescription, total, clearCart } = useCart();
   const [documentUrl, setDocumentUrl] = useState('');
-  const [createOrder, { loading }] = useMutation(CREATE_ORDER);
   const [formErrors, setFormErrors] = useState([]);
+
+  const [createOrder, { loading }] = useMutation(CREATE_ORDER, {
+    // Actualización inteligente de la caché en memoria tras la mutación:
+    // en vez de recargar todo el catálogo desde el servidor, modificamos
+    // directamente los objetos Medication ya normalizados en la
+    // InMemoryCache de Apollo Client, decrementando su stock localmente.
+    update: (cache, { data }) => {
+      if (!data?.createOrder?.success) return;
+      items.forEach((item) => {
+        const cacheId = cache.identify({ __typename: 'Medication', id: item.medicationId });
+        if (!cacheId) return;
+        cache.modify({
+          id: cacheId,
+          fields: {
+            stock: (existingStock = 0) => Math.max(0, existingStock - item.quantity),
+            inStock: (_existing, { readField }) => (readField('stock') || 0) > 0,
+          },
+        });
+      });
+    },
+  });
 
   const handleCheckout = async () => {
     setFormErrors([]);
